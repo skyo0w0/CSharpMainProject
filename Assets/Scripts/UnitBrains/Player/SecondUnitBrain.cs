@@ -46,6 +46,21 @@ namespace UnitBrains.Player
             // Homework 1.4 (1st block, 4rd module)
             ///////////////////////////////////////
             List<Vector2Int> result = GetReachableTargets();
+            float maxValue = float.MaxValue;
+            Vector2Int minVector2 = new Vector2Int();
+            foreach (Vector2Int v2 in result)
+            {
+                if (maxValue > DistanceToOwnBase(v2))
+                {
+                    maxValue = DistanceToOwnBase(v2);
+                    minVector2 = v2;
+                }
+            }
+            if (maxValue != float.MaxValue)
+            {
+                result.Clear();
+                result.Add(minVector2);
+            }
             while (result.Count > 1)
             {
                 result.RemoveAt(result.Count - 1);
@@ -59,7 +74,7 @@ namespace UnitBrains.Player
             if (_overheated)
             {
                 _cooldownTime += Time.deltaTime;
-                float t = _cooldownTime / (OverheatCooldown / 10);
+                float t = _cooldownTime / ( OverheatCooldown / 10 );
                 _temperature = Mathf.Lerp(OverheatTemperature, 0, t);
                 if (t >= 1)
                 {
