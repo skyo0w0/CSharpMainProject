@@ -47,23 +47,20 @@ namespace UnitBrains.Player
             ///////////////////////////////////////
             List<Vector2Int> result = GetReachableTargets();
             float maxValue = float.MaxValue;
-            Vector2Int minVector2 = new Vector2Int();
+            Vector2Int minVector2 = Vector2Int.zero;
             foreach (Vector2Int v2 in result)
             {
-                if (maxValue > DistanceToOwnBase(v2))
+                float distance = DistanceToOwnBase(v2);
+                if (maxValue > distance)
                 {
-                    maxValue = DistanceToOwnBase(v2);
+                    maxValue = distance;
                     minVector2 = v2;
                 }
             }
+            result.Clear();
             if (maxValue != float.MaxValue)
             {
-                result.Clear();
                 result.Add(minVector2);
-            }
-            while (result.Count > 1)
-            {
-                result.RemoveAt(result.Count - 1);
             }
             return result;
             ///////////////////////////////////////
