@@ -2,6 +2,9 @@
 using Model.Runtime.Projectiles;
 using Unity.VisualScripting;
 using UnityEngine;
+using Model;
+using UnityEngine.UIElements;
+using Utilities;
 
 namespace UnitBrains.Player
 {
@@ -13,6 +16,7 @@ namespace UnitBrains.Player
         private float _temperature = 0f;
         private float _cooldownTime = 0f;
         private bool _overheated;
+        private List<Vector2Int> _notReachebleTarget = new List<Vector2Int>();
 
         protected override void GenerateProjectiles(Vector2Int forTarget, List<BaseProjectile> intoList)
         {
@@ -37,7 +41,17 @@ namespace UnitBrains.Player
 
         public override Vector2Int GetNextStep()
         {
-            return base.GetNextStep();
+            List<Vector2Int> targetsInRange = SelectTargets();
+            if (targetsInRange.Count > 0 && _notReachebleTarget.Count == 0)
+            {
+                return unit.Pos;
+            }
+            else
+            {
+                Vector2Int nextStep = unit.Pos.CalcNextStepTowards(_notReachebleTarget[0]);
+                _notReachebleTarget.Clear();
+                return nextStep;
+            }
         }
 
         protected override List<Vector2Int> SelectTargets()
@@ -45,7 +59,8 @@ namespace UnitBrains.Player
             ///////////////////////////////////////
             // Homework 1.4 (1st block, 4rd module)
             ///////////////////////////////////////
-            List<Vector2Int> result = GetReachableTargets();
+            List<Vector2Int> result = (List<Vector2Int>) GetAllTargets();
+            List<Vector2Int> reachebleTargets = GetReachableTargets();
             float maxValue = float.MaxValue;
             Vector2Int minVector2 = Vector2Int.zero;
             foreach (Vector2Int v2 in result)
@@ -60,7 +75,19 @@ namespace UnitBrains.Player
             result.Clear();
             if (maxValue != float.MaxValue)
             {
-                result.Add(minVector2);
+                if (reachebleTargets.Contains(minVector2))
+                {
+                    result.Add(minVector2);
+                }
+                else
+                {
+                    _notReachebleTarget.Add(minVector2);
+                }
+            }
+            else
+            {
+                Vector2Int enemyBase = runtimeModel.RoMap.Bases[RuntimeModel.BotPlayerId];
+                result.Add(enemyBase);
             }
             return result;
             ///////////////////////////////////////
