@@ -5,6 +5,9 @@ using UnityEngine;
 using Model;
 using UnityEngine.UIElements;
 using Utilities;
+using GluonGui.Dialog;
+using System.Linq;
+using PlasticGui.WorkspaceWindow;
 
 namespace UnitBrains.Player
 {
@@ -17,6 +20,9 @@ namespace UnitBrains.Player
         private float _cooldownTime = 0f;
         private bool _overheated;
         private List<Vector2Int> _notReachebleTarget = new List<Vector2Int>();
+        private static int _unitCounter = 0;
+        private int _unitNumber = _unitCounter++;
+        private const int _maxUnits = 3;
 
         protected override void GenerateProjectiles(Vector2Int forTarget, List<BaseProjectile> intoList)
         {
@@ -58,39 +64,31 @@ namespace UnitBrains.Player
 
         protected override List<Vector2Int> SelectTargets()
         {
-            ///////////////////////////////////////
-            // Homework 1.4 (1st block, 4rd module)
-            ///////////////////////////////////////
-            List<Vector2Int> result = (List<Vector2Int>) GetAllTargets();
-            float maxValue = float.MaxValue;
-            Vector2Int minVector2 = Vector2Int.zero;
-            foreach (Vector2Int v2 in result)
-            {
-                float distance = DistanceToOwnBase(v2);
-                if (maxValue > distance)
-                {
-                    maxValue = distance;
-                    minVector2 = v2;
-                }
-            }
+            List<Vector2Int> result = new List<Vector2Int>();
+            List<Vector2Int> allTargets = (List<Vector2Int>) GetAllTargets();
+            List<Vector2Int> reachableTargets = new List<Vector2Int>();
             _notReachebleTarget.Clear();
-            result.Clear();
-            if (maxValue != float.MaxValue)
+            foreach (Vector2Int v2 in allTargets)
             {
-                _notReachebleTarget.Add(minVector2);
-
-                if (IsTargetInRange(minVector2))
+                if (IsTargetInRange(v2))
                 {
-                    result.Add(minVector2);
+                    reachableTargets.Add(v2);
+                }
+                else
+                {
+                    _notReachebleTarget.Add(v2);
                 }
             }
-            else
+            if (allTargets.Count == 0 || reachableTargets.Count == 0)
             {
                 Vector2Int enemyBase = runtimeModel.RoMap.Bases[IsPlayerUnitBrain ? RuntimeModel.BotPlayerId : RuntimeModel.PlayerId];
                 result.Add(enemyBase);
+                return result;
             }
+            SortByDistanceToOwnBase(reachableTargets);
+            int targetIndex = _unitNumber % _maxUnits;
+            result.Add(reachableTargets[targetIndex]);
             return result;
-            ///////////////////////////////////////
         }
 
         public override void Update(float deltaTime, float time)
