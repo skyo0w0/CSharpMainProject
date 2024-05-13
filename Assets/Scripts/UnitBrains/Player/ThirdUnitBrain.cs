@@ -59,11 +59,6 @@ public class ThirdUnitBrain : DefaultPlayerUnitBrain
     {
         
         var targets = base.SelectTargets();
-        if (!_isMoving)
-        {
-            _isAttacking = true;
-            _isChangingMode = true;
-        }
         return new List<Vector2Int>();
     }
 }
