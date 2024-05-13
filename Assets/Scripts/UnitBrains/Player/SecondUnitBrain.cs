@@ -49,15 +49,15 @@ namespace UnitBrains.Player
         {
             Vector2Int target = Vector2Int.zero;
             List<Vector2Int> targetsInRange = SelectTargets();
-            if (_notReachebleTarget.Count == 0) 
+            if (_notReachebleTarget.Count == 0)
             {
                 target = unit.Pos;
             }
             else target = _notReachebleTarget[0];
 
-            if (IsTargetInRange(target)) 
-            { 
-                return unit.Pos; 
+            if (IsTargetInRange(target))
+            {
+                return unit.Pos;
             }
             else return unit.Pos.CalcNextStepTowards(target);
         }
@@ -65,29 +65,24 @@ namespace UnitBrains.Player
         protected override List<Vector2Int> SelectTargets()
         {
             List<Vector2Int> result = new List<Vector2Int>();
-            List<Vector2Int> allTargets = (List<Vector2Int>) GetAllTargets();
-            List<Vector2Int> reachableTargets = new List<Vector2Int>();
+            //List<Vector2Int> allTargets = (List<Vector2Int>)GetAllTargets();
+            //List<Vector2Int> reachableTargets = new List<Vector2Int>();
             _notReachebleTarget.Clear();
-            foreach (Vector2Int v2 in allTargets)
+            foreach (Vector2Int v2 in GetAllTargets())
             {
-                if (IsTargetInRange(v2))
-                {
-                    reachableTargets.Add(v2);
-                }
-                else
-                {
                     _notReachebleTarget.Add(v2);
-                }
             }
-            if (allTargets.Count == 0 || reachableTargets.Count == 0)
+            if (_notReachebleTarget.Count == 0)
             {
                 Vector2Int enemyBase = runtimeModel.RoMap.Bases[IsPlayerUnitBrain ? RuntimeModel.BotPlayerId : RuntimeModel.PlayerId];
                 result.Add(enemyBase);
                 return result;
             }
-            SortByDistanceToOwnBase(reachableTargets);
+            SortByDistanceToOwnBase(_notReachebleTarget);
             int targetIndex = _unitNumber % _maxUnits;
-            result.Add(reachableTargets[targetIndex]);
+            Vector2Int bestTarget = _notReachebleTarget[targetIndex];
+            if(IsTargetInRange(bestTarget))
+                result.Add(_notReachebleTarget[targetIndex]);
             return result;
         }
 
@@ -96,7 +91,7 @@ namespace UnitBrains.Player
             if (_overheated)
             {
                 _cooldownTime += Time.deltaTime;
-                float t = _cooldownTime / ( OverheatCooldown / 10 );
+                float t = _cooldownTime / (OverheatCooldown / 10);
                 _temperature = Mathf.Lerp(OverheatTemperature, 0, t);
                 if (t >= 1)
                 {
