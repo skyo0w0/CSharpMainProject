@@ -4,61 +4,51 @@ using UnitBrains.Player;
 using UnityEngine;
 using UnityEngine.PlayerLoop;
 
-public class ThirdUnitBrain : DefaultPlayerUnitBrain
-
+namespace UnitBrains.Player
 {
-    private bool _isAttacking = false;
-    private bool _isMoving = true;
-    private bool _isChangingMode = false;
-    private float _changeTime = 60f;
-    private float _timeFromChange = 0f;
-    public override string TargetUnitName => "Ironclad Behemoth";
-
-    public override void Update(float deltaTime, float time)
+    public class ThirdUnitBrain : DefaultPlayerUnitBrain
     {
-        base.Update(deltaTime, time);
-        if (_isChangingMode)
+        public override string TargetUnitName => "Ironclad Behemoth";
+
+        private const float TransitionDuration = 1f;
+        private bool _isShooting = false;
+        private bool isInTransition = false;
+        private bool _hasTargets = false;
+        private float transitionStartTime = 0f;
+        public override void Update(float deltaTime, float time)
         {
-            if (_timeFromChange == 0f)
+            base.Update(deltaTime, time);
+
+            if (_isShooting && !_hasTargets && !isInTransition ||
+                !_isShooting && _hasTargets && !isInTransition)
             {
-                _timeFromChange += Time.deltaTime;
+                isInTransition = true;
+                transitionStartTime = time;
             }
 
-            if (_timeFromChange >= _changeTime)
+            if (isInTransition && time - transitionStartTime >= TransitionDuration)
             {
-                _isChangingMode = false;
-                _timeFromChange = 0f;
-
-                _isAttacking = !_isAttacking;
-                _isMoving = !_isMoving;
+                _isShooting = !_isShooting;
+                isInTransition = false;
             }
         }
-    }
 
-    public override Vector2Int GetNextStep()
-    {
-        Vector2Int target =  base.GetNextStep();
-        if (target == unit.Pos)
+        public override Vector2Int GetNextStep()
         {
-            if (!_isAttacking)
-            {
-                _isChangingMode = true;
-            }
-        }
-        else
-        {
-            if (_isAttacking)
-            {
-                _isChangingMode = true;
-            }
-        }
-        return target;
-    }
+            if (_isShooting || isInTransition)
+                return unit.Pos;
 
-    protected override List<Vector2Int> SelectTargets()
-    {
-        
-        var targets = base.SelectTargets();
-        return new List<Vector2Int>();
+            return base.GetNextStep();
+        }
+
+        protected override List<Vector2Int> SelectTargets()
+        {
+            var result = base.SelectTargets();
+            _hasTargets = result.Count > 0;
+            if (!_isShooting || isInTransition)
+                result.Clear();
+
+            return result;
+        }
     }
 }
