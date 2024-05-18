@@ -45,22 +45,6 @@ namespace UnitBrains.Player
             ///////////////////////////////////////
         }
 
-        public override Vector2Int GetNextStep()
-        {
-            Vector2Int target = Vector2Int.zero;
-            List<Vector2Int> targetsInRange = SelectTargets();
-            if (_notReachebleTarget.Count == 0)
-            {
-                target = unit.Pos;
-            }
-            else target = _notReachebleTarget[0];
-
-            if (IsTargetInRange(target))
-            {
-                return unit.Pos;
-            }
-            else return unit.Pos.CalcNextStepTowards(target);
-        }
 
         protected override List<Vector2Int> SelectTargets()
         {
@@ -72,7 +56,7 @@ namespace UnitBrains.Player
             {
                     _notReachebleTarget.Add(v2);
             }
-            if (_notReachebleTarget.Count == 0)
+            if (_notReachebleTarget.Count <= 1)
             {
                 Vector2Int enemyBase = runtimeModel.RoMap.Bases[IsPlayerUnitBrain ? RuntimeModel.BotPlayerId : RuntimeModel.PlayerId];
                 result.Add(enemyBase);
