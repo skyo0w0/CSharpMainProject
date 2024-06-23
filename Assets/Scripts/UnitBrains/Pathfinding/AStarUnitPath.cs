@@ -1,20 +1,19 @@
-using Codice.Client.Common.GameUI;
 using Model;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using UnitBrains;
+using System.IO;
+using System;
 using UnitBrains.Pathfinding;
-using UnityEditor.Experimental.GraphView;
 using UnityEngine;
+using Model.Runtime;
+using System.Linq;
 
 public class AStarUnitPath : BaseUnitPath
 {
     private Vector2Int _startPoint;
     private Vector2Int _endPoint;
     private IReadOnlyRuntimeModel _runTimeModel;
-    private int[] dx = { -1, 0, 1, 0 };
-    private int[] dy = { 0, -1, 0, 1 };
+    private int[] dx = { 1, 0, -1, 0 };
+    private int[] dy = { 0, 1, 0, -1 };
 
     public AStarUnitPath(IReadOnlyRuntimeModel runtimeModel, Vector2Int startPoint, Vector2Int endPoint) : base(runtimeModel, startPoint, endPoint)
     {
@@ -25,56 +24,57 @@ public class AStarUnitPath : BaseUnitPath
 
     protected override void Calculate()
     {
-        APathNode startNode = new APathNode(_startPoint);
-        APathNode targetNode = new APathNode(_endPoint);
 
         //¬се вершины в которые можно пойти
-        List<APathNode> openList = new List<APathNode>() { startNode };
+        List<Vector2Int> openList = new List<Vector2Int>() { _startPoint };
         // все вершины по которым прошли
-        List<APathNode> closedList = new List<APathNode>();
+        HashSet<Vector2Int> closedList = new HashSet<Vector2Int>();
         var result = new List<Vector2Int> { _startPoint };
 
         while (openList.Count > 0)
         {
-            APathNode currentNode = openList[0];
+            Vector2Int currentPoint = openList[0];
 
-            foreach (var node in openList)
+            foreach (var point in openList)
             {
-                if (node.Value < currentNode.Value)
+                if (CalculateValue(point) < CalculateValue(currentPoint))
                 {
-                    currentNode = node;
+                    currentPoint = point;
                 }
             }
-            openList.Remove(currentNode);
-            closedList.Add(currentNode);
+            openList.Remove(currentPoint);
+            closedList.Add(currentPoint);
             //ѕроверка на конец пути
-            if (currentNode.X == targetNode.X && currentNode.Y == targetNode.Y)
+            if (currentPoint == _endPoint)
             {
-                while (currentNode != null)
-                {
-                    result.Add(currentNode.ReturnVector2());
-                    currentNode = currentNode.Parent;
-                }
-                result.Reverse();
-                path = result.ToArray();
+                path = closedList.ToArray();
                 return;
             }
             //–ассчет следующей ноды
             bool newNodeAdded = false;
             for (int i = 0; i < dx.Length; i++)
             {
-                int newX = currentNode.X + dx[i];
-                int newY = currentNode.Y + dy[i];
-                if (_runTimeModel.IsTileWalkable(new Vector2Int(newX, newY)) || (newX == targetNode.X && newY == targetNode.Y))
-                {
-                    APathNode neighbor = new APathNode(newX, newY);
-                    if (closedList.Contains(neighbor))
-                        continue;
-                    neighbor.Parent = currentNode;
-                    neighbor.CalculateEstimate(targetNode.X, targetNode.Y);
-                    neighbor.CalculateValue();
+                Vector2Int newPoint = new Vector2Int(currentPoint.x + dx[i], currentPoint.y + dy[i]);
 
-                    openList.Add(neighbor);
+                // ѕровер€ем, не находитс€ ли точка в закрытом списке
+                if (closedList.Contains(newPoint))
+                {
+                    continue;
+                }
+
+                // ѕровер€ем, проходима ли точка или €вл€етс€ конечной точкой
+                if (_runTimeModel.IsTileWalkable(newPoint) || (newPoint == _endPoint))
+                {
+                    if (!openList.Contains(newPoint))
+                    {
+                        openList.Add(newPoint);
+                        Debug.Log($"Added newPoint to openList: {newPoint}");
+                        newNodeAdded = true;
+                    }
+                }
+                if (isUnitOnTile(newPoint))
+                {
+                    CalculateNewPoints(newPoint, openList, closedList);
                     newNodeAdded = true;
                 }
             }
@@ -87,6 +87,63 @@ public class AStarUnitPath : BaseUnitPath
             }
 
         }
+    }
+
+    public void CalculateNewPoints(Vector2Int currentPoint, List<Vector2Int> openList, HashSet<Vector2Int> closedList, int depth = 0)
+    {
+        // ќграничиваем глубину рекурсии дл€ предотвращени€ бесконечных вызовов
+        int maxDepth = 2;
+        if (depth > maxDepth)
+        {
+            Debug.LogWarning("Max recursion depth reached");
+            return;
+        }
+
+        for (int i = 0 ; i < dx.Length ; i++)
+        {
+            Vector2Int newPoint = new Vector2Int(currentPoint.x + dx[i], currentPoint.y + dy[i]);
+
+            // ѕровер€ем, не находитс€ ли точка в закрытом списке
+            if (closedList.Contains(newPoint))
+            {
+                continue;
+            }
+
+            // ѕровер€ем, проходима ли точка или €вл€етс€ конечной точкой
+            if (_runTimeModel.IsTileWalkable(newPoint) || (newPoint == _endPoint))
+            {
+                if (!openList.Contains(newPoint))
+                {
+                    openList.Add(newPoint);
+                    Debug.Log($"Added newPoint to openList: {newPoint}");
+                }
+            }
+            if (isUnitOnTile(newPoint))
+            {
+                CalculateNewPoints(newPoint, openList, closedList,depth + 1);
+            }
+
+        }
+    }
+
+    public bool isUnitOnTile(Vector2Int point)
+    {
+        foreach (var unit in _runTimeModel.RoUnits)
+        {
+            if (unit.Pos == point)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+    public int CalculateEstimate(int targetX, int targetY, Vector2Int point)
+    {
+        return Math.Abs(point.x - targetX) + Math.Abs(point.y - targetY);
+    }
+    public int CalculateValue(Vector2Int point, int Cost = 10)
+    {
+        return Math.Abs(Cost + CalculateEstimate(_endPoint.x, _endPoint.y, point)) ;
     }
 
 
