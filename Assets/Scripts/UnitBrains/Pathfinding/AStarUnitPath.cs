@@ -92,19 +92,19 @@ public class AStarUnitPath : BaseUnitPath
     public void CalculateNewPoints(Vector2Int currentPoint, List<Vector2Int> openList, HashSet<Vector2Int> closedList, int depth = 0)
     {
         // ќграничиваем глубину рекурсии дл€ предотвращени€ бесконечных вызовов
-        int maxDepth = 2;
+        int maxDepth = 1;
         if (depth > maxDepth)
         {
             Debug.LogWarning("Max recursion depth reached");
             return;
         }
 
-        for (int i = 0 ; i < dx.Length ; i++)
+        for (int i = 0; i < dx.Length; i++)
         {
             Vector2Int newPoint = new Vector2Int(currentPoint.x + dx[i], currentPoint.y + dy[i]);
 
             // ѕровер€ем, не находитс€ ли точка в закрытом списке
-            if (closedList.Contains(newPoint))
+            if (closedList.Contains(newPoint) || openList.Contains(newPoint))
             {
                 continue;
             }
