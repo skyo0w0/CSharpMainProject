@@ -94,8 +94,7 @@ public class AStarUnitPath : BaseUnitPath
         // Ограничиваем глубину рекурсии для предотвращения бесконечных вызовов
         int maxDepth = 1;
         if (depth > maxDepth)
-        {
-            Debug.LogWarning("Max recursion depth reached");
+        { 
             return;
         }
 
